@@ -17,7 +17,7 @@ void resetSysTime();
 void dismissAlarm();
 void toggleMonitoring();
 void triggerAlarm();
-incrementSysTime();
+void incrementSysTime();
 void *adcThread(void *threadargs);
 void outputValues();
 

@@ -24,7 +24,7 @@ int main()
 {
 	initGPIO();
 	
-	setSysTime();
+	resetSysTime();
 	
 	setupThread();
     
@@ -104,7 +104,6 @@ void initGPIO()
 	setup |= 0b01000000;
 	setup &= 0b11000000;
 	wiringPiI2CWriteReg8(RTC, 0x07, setup);
-	resetSysTime();
 	
 	//setup buttons: b[0]-Interval change, b[1]-Reset Sys Time, b[2]-Dismiss alarm, b[3]-Toggle monitoring
 	for(uint j=0; j < sizeof(BTNS)/sizeof(BTNS[0]); j++)
@@ -186,7 +185,7 @@ void triggerAlarm()
 	outputAlarm = 1;
 }
 
-incrementSysTime()
+void incrementSysTime()
 {
 	sysSec+=interval;
 	if(sysSec>=60)
@@ -217,7 +216,7 @@ void outputValues()
 			rtcSec &= 0b01111111;
 			
 			if(dacOut<lowThreashold||dacOut>highThreashold){triggerAlarm();}
-			printf("%02x:%02x:%02x\t%02d:%02d:%02d\t%.1f\t%d\t%d\t%.1f\t%d\n",rtcHour,rtcMin,rtcSec,sHour,sMin,sSec,humidity, temp, light,dacOut,dacAlarm);
+			printf("%02x:%02x:%02x\t%02d:%02d:%02d\t%.1f\t%d\t%d\t%.1f\t%d\n",rtcHour,rtcMin,rtcSec,sysHour,sysMin,sysSec,humidity, temp, light,dacOut,outputAlarm);
 		}
 	}
 }
