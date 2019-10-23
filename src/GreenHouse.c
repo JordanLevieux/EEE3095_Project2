@@ -4,6 +4,12 @@ int RTC;
 
 int interval = 1;		//holds values related to output timing
 int counter =0;
+char outputHumidity[75];
+char outputLDR[75];
+char outputTemp[75];
+char outputDAC[75];
+char alarmOutput[75];
+char outputAll[150];
 
 long lastInterruptTime = 0;			//for btn debounce
 int outputAlarm = 0;				//default false
@@ -20,6 +26,7 @@ int temp=0;
 int light=0;
 float dacOut =0;
 
+
 int main()
 {
 	initGPIO();
@@ -28,13 +35,32 @@ int main()
 	
 	setupThread();
     
-	printf("RTC Time\tSys Time\tHumidity Temp\tLight\tDACout\tAlarm\n");
-    while (1)
+	int fd;                             //Setup for named pipe
+	char *myPipe = (char*)"/tmp/myfifo";
+	mkfifo(myPipe, 0666);
+	char updateCode[10];
+	while (1)
     {
-		delay(100);
-		
+		fd = open(myPipe, O_RDONLY);
+		read(fd, updateCode, sizeof(updateCode));
+		//printf("updateCode: %s\n", updateCode);
+		switch(updateCode[0])
+		{
+			case '1':
+				outputAlarm = 0;
+				break;
+			case '2':
+				sscanf((updateCode+1), "%f", &highThreashold);
+		        break;
+			case '3':
+				sscanf((updateCode+1), "%f", &lowThreashold);
+                break;
+			default:
+				printf("Error in update code");
+		}
+		close(fd);
     }
-    
+
 	return 0;
 }
 
@@ -61,24 +87,24 @@ void *adcThread(void *threadargs)
 	while (1)
 	{
 		buffer[0] = 1;
-		buffer[1] = 0b10110000;								
+		buffer[1] = 0b10110000;
 		wiringPiSPIDataRW(SPI_CHAN, buffer, 3);
   		humidity = (((buffer[1]&3)<<8)+buffer[2]);
 		humidity = (humidity/1023)*3.3;
 
 		buffer[0] = 1;
-		buffer[1] = 0b10010000;								
+		buffer[1] = 0b10010000;
 		wiringPiSPIDataRW(SPI_CHAN, buffer, 3);
 		temp = (((buffer[1]&3)<<8)+buffer[2]);
-		
+
 		buffer[0] = 1;
-		buffer[1] = 0b10100000;								
+		buffer[1] = 0b10100000;
 		wiringPiSPIDataRW(SPI_CHAN, buffer, 3);
 		light = (((buffer[1]&3)<<8)+buffer[2]);
 
 		dacOut = (light/1023.0)*humidity;
 	}
-	
+
 }
 
 void initGPIO()
@@ -183,6 +209,8 @@ void toggleMonitoring()
 void triggerAlarm()
 {
 	outputAlarm = 1;
+	//sprintf(alarmOutput, "mosquitto_pub -d -h 192.168.137.1 -p 1883 -t ADC/AlarmTrigger -m on");
+	//system(alarmOutput);
 }
 
 void incrementSysTime()
@@ -214,9 +242,18 @@ void outputValues()
 			rtcMin = wiringPiI2CReadReg8(RTC, MIN);
 			rtcSec = wiringPiI2CReadReg8(RTC, SEC);
 			rtcSec &= 0b01111111;
-			
-			if(dacOut<lowThreashold||dacOut>highThreashold){triggerAlarm();}
-			printf("%02x:%02x:%02x\t%02d:%02d:%02d\t%.1f\t%d\t%d\t%.1f\t%d\n",rtcHour,rtcMin,rtcSec,sysHour,sysMin,sysSec,humidity, temp, light,dacOut,outputAlarm);
+			if(dacOut<lowThreashold||dacOut>highThreashold){outputAlarm=1;}
+			//printf("%02x:%02x:%02x\t%02d:%02d:%02d\t%.1f\t%d\t%d\t%.1f\t%d\n",rtcHour,rtcMin,rtcSec,sysHour,sysMin,sysSec,humidity, temp, light,dacOut,outputAlarm);
+			/*sprintf(outputHumidity, "mosquitto_pub -d -h 192.168.137.15 -p 1883 -t ADC/Humidity -m %.1f",humidity);
+			sprintf(outputTemp, "mosquitto_pub -d -h 192.168.137.15 -p 1883 -t ADC/Temp -m %d",temp);
+			sprintf(outputLDR, "mosquitto_pub -d -h 192.168.137.15 -p 1883 -t ADC/LDR -m %d",light);
+			sprintf(outputDAC, "mosquitto_pub -d -h 192.168.137.15 -p 1883 -t ADC/DAC -m %.1f",dacOut);
+			system(outputHumidity);
+			system(outputTemp);
+			system(outputLDR);
+			system(outputDAC);*/
+			sprintf(outputAll, "mosquitto_pub -d -h 192.168.137.15 -p 1883 -t ADC -m \"%d,%.1f,%d,%.1f,%02d:%02d:%02d,%d\">/dev/null", light, humidity, temp, dacOut, sysHour, sysMin, sysSec, outputAlarm);
+			system(outputAll);
 		}
 	}
 }

@@ -8,6 +8,10 @@
 #include <math.h>
 #include <pthread.h>
 #include <iostream>
+#include <string.h>
+#include <fcntl.h> 
+#include <sys/stat.h> 
+#include <sys/types.h> 
 
 //Method declarations
 void setupThread();
@@ -34,3 +38,4 @@ const int BTNS[] = {22,23,24,25};
 const int PWMpin = 1;
 const int RTCAlarm =7;
 
+using namespace std;
