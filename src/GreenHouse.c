@@ -243,7 +243,7 @@ void outputValues()
 			rtcSec = wiringPiI2CReadReg8(RTC, SEC);
 			rtcSec &= 0b01111111;
 			if(dacOut<lowThreashold||dacOut>highThreashold){outputAlarm=1;}
-			//printf("%02x:%02x:%02x\t%02d:%02d:%02d\t%.1f\t%d\t%d\t%.1f\t%d\n",rtcHour,rtcMin,rtcSec,sysHour,sysMin,sysSec,humidity, temp, light,dacOut,outputAlarm);
+			printf("%02x:%02x:%02x\t%02d:%02d:%02d\t%.1f\t%d\t%d\t%.1f\t%d\n",rtcHour,rtcMin,rtcSec,sysHour,sysMin,sysSec,humidity, temp, light,dacOut,outputAlarm);
 			/*sprintf(outputHumidity, "mosquitto_pub -d -h 192.168.137.15 -p 1883 -t ADC/Humidity -m %.1f",humidity);
 			sprintf(outputTemp, "mosquitto_pub -d -h 192.168.137.15 -p 1883 -t ADC/Temp -m %d",temp);
 			sprintf(outputLDR, "mosquitto_pub -d -h 192.168.137.15 -p 1883 -t ADC/LDR -m %d",light);
@@ -252,7 +252,7 @@ void outputValues()
 			system(outputTemp);
 			system(outputLDR);
 			system(outputDAC);*/
-			sprintf(outputAll, "mosquitto_pub -d -h 192.168.137.15 -p 1883 -t ADC -m \"%d,%.1f,%d,%.1f,%02d:%02d:%02d,%d\">/dev/null", light, humidity, temp, dacOut, sysHour, sysMin, sysSec, outputAlarm);
+			sprintf(outputAll, "mosquitto_pub -d -h 192.168.137.15 -p 1883 -t ADC -m \"%d,%.1f,%d,%.1f,%02d:%02d:%02d,%d,%d\">/dev/null", light, humidity, temp, dacOut, sysHour, sysMin, sysSec, outputAlarm, monitoring);
 			system(outputAll);
 		}
 	}
